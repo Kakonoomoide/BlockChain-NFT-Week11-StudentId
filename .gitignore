@@ -1,0 +1,5 @@
+.env
+.cmu-session*
+node_modules/
+artifacts/
+deployments/local/

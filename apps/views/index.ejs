@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title><%= info.name %> (<%= info.symbol %>) — Regulator Console</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-slate-50 text-slate-900 antialiased selection:bg-slate-900 selection:text-white">
+
+  <!-- Top Navigation Bar -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 bg-slate-900 text-white flex items-center justify-center font-mono font-bold text-sm rounded">
+          <%= info.symbol.slice(0, 3) %>
+        </div>
+        <div>
+          <h1 class="text-sm font-semibold tracking-tight text-slate-900"><%= info.name %></h1>
+          <p class="text-xs font-mono text-slate-500"><%= info.contract %></p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium border <%= info.paused ? 'bg-red-50 text-red-700 border-red-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200' %>">
+          <span class="w-1.5 h-1.5 rounded-full <%= info.paused ? 'bg-red-600' : 'bg-emerald-600' %>"></span>
+          <%= info.paused ? 'SYSTEM PAUSED' : 'OPERATIONAL' %>
+        </span>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+    <!-- Flash Notifications -->
+    <% if (ok) { %>
+      <div class="bg-emerald-50 border border-emerald-200 text-emerald-900 px-4 py-3 rounded-md flex items-center justify-between text-sm">
+        <span class="font-medium"><%= ok %></span>
+        <a href="/" class="text-xs underline text-emerald-700 hover:text-emerald-900">Tutup</a>
+      </div>
+    <% } %>
+
+    <% if (err) { %>
+      <div class="bg-red-50 border border-red-200 text-red-900 px-4 py-3 rounded-md flex items-center justify-between text-sm">
+        <span class="font-medium"><%= err %></span>
+        <a href="/" class="text-xs underline text-red-700 hover:text-red-900">Tutup</a>
+      </div>
+    <% } %>
+
+    <!-- Key Metrics Overview -->
+    <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-white p-5 rounded-md border border-slate-200">
+        <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Total Supply</p>
+        <p class="mt-2 text-2xl font-mono font-semibold text-slate-900"><%= info.totalSupply %> <span class="text-xs font-normal text-slate-500"><%= info.symbol %></span></p>
+      </div>
+      <div class="bg-white p-5 rounded-md border border-slate-200">
+        <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Max Supply Cap</p>
+        <p class="mt-2 text-2xl font-mono font-semibold text-slate-900"><%= info.cap %> <span class="text-xs font-normal text-slate-500"><%= info.symbol %></span></p>
+      </div>
+      <div class="bg-white p-5 rounded-md border border-slate-200 sm:col-span-2">
+        <p class="text-xs font-medium text-slate-500 uppercase tracking-wider">Regulator / Owner Address</p>
+        <div class="mt-2 flex items-center justify-between gap-2">
+          <p class="text-sm font-mono text-slate-800 truncate"><%= info.owner %></p>
+          <button type="button" onclick="copyAddress('<%= info.owner %>', this)" class="text-xs font-medium text-slate-500 hover:text-slate-900 border border-slate-200 px-2 py-1 rounded bg-slate-50">
+            Copy
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Wallets & Balances Table -->
+    <section class="bg-white border border-slate-200 rounded-md overflow-hidden">
+      <div class="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+        <h2 class="text-sm font-semibold text-slate-900">Daftar Akun Terdaftar</h2>
+        <span class="text-xs text-slate-500"><%= rows.length %> Akun Aktif</span>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+          <thead>
+            <tr class="bg-slate-50 border-b border-slate-200 text-xs font-medium text-slate-500 uppercase">
+              <th class="py-3 px-5">Label</th>
+              <th class="py-3 px-5">Wallet Address</th>
+              <th class="py-3 px-5 text-right">Saldo (<%= info.symbol %>)</th>
+              <th class="py-3 px-5">Status Kepatuhan</th>
+              <th class="py-3 px-5 text-right">Aksi Cepat</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-200 text-sm">
+            <% rows.forEach(r => { %>
+              <tr class="hover:bg-slate-50/80 transition-colors">
+                <td class="py-3.5 px-5 font-medium text-slate-900"><%= r.label %></td>
+                <td class="py-3.5 px-5 font-mono text-xs text-slate-600">
+                  <%= r.address %>
+                  <button type="button" onclick="copyAddress('<%= r.address %>', this)" class="ml-2 text-slate-400 hover:text-slate-800 underline">copy</button>
+                </td>
+                <td class="py-3.5 px-5 font-mono font-medium text-right text-slate-900"><%= r.balance %></td>
+                <td class="py-3.5 px-5">
+                  <% if (r.blacklisted) { %>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-50 text-red-700 border border-red-200">
+                      BLACKLISTED
+                    </span>
+                    <p class="text-xs text-slate-500 mt-1"><%= r.reason %> (<%= r.since %>)</p>
+                  <% } else { %>
+                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700">
+                      CLEAR
+                    </span>
+                  <% } %>
+                </td>
+                <td class="py-3.5 px-5 text-right space-x-2 text-xs">
+                  <button type="button" onclick="fillAddressInput('transfer-to', '<%= r.address %>')" class="text-slate-600 hover:text-slate-900 underline">Kirim ke sini</button>
+                  <button type="button" onclick="fillAddressInput('compliance-addr', '<%= r.address %>')" class="text-slate-600 hover:text-slate-900 underline">Audit</button>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Shared Datalist for Editable Dropdowns -->
+    <datalist id="wallet-options">
+      <% rows.forEach(r => { %>
+        <option value="<%= r.address %>"><%= r.label %> (<%= r.balance %> <%= info.symbol %>)</option>
+      <% }) %>
+    </datalist>
+
+    <!-- Action Controls Grid -->
+    <section class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <!-- Transfer Form -->
+      <div class="bg-white p-5 border border-slate-200 rounded-md flex flex-col justify-between">
+        <div>
+          <h3 class="text-sm font-semibold text-slate-900 border-b border-slate-100 pb-3">Transfer Token</h3>
+          <form action="/transfer" method="POST" data-tx-form class="mt-4 space-y-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-700 mb-1">Pengirim</label>
+              <select name="from" class="w-full text-sm border border-slate-300 rounded px-3 py-2 bg-white focus:outline-none focus:border-slate-900">
+                <% rows.forEach(r => { %>
+                  <option value="<%= r.index %>"><%= r.label %> (<%= r.balance %> <%= info.symbol %>)</option>
+                <% }) %>
+              </select>
+            </div>
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label class="block text-xs font-medium text-slate-700">Alamat Tujuan</label>
+                <button type="button" onclick="clearInput('transfer-to')" class="text-[11px] text-slate-400 hover:text-slate-700">Reset</button>
+              </div>
+              <input id="transfer-to" list="wallet-options" type="text" name="to" placeholder="Pilih akun atau ketik 0x..." autocomplete="off" required class="w-full font-mono text-xs border border-slate-300 rounded px-3 py-2 bg-white focus:outline-none focus:border-slate-900" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-700 mb-1">Jumlah (<%= info.symbol %>)</label>
+              <input type="text" name="amount" placeholder="100" required class="w-full font-mono text-sm border border-slate-300 rounded px-3 py-2 focus:outline-none focus:border-slate-900" />
+            </div>
+            <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold py-2.5 px-4 rounded transition-colors">
+              Eksekusi Transfer
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- Mint & Circuit Breaker -->
+      <div class="bg-white p-5 border border-slate-200 rounded-md flex flex-col justify-between space-y-6">
+        <div>
+          <h3 class="text-sm font-semibold text-slate-900 border-b border-slate-100 pb-3">Penerbitan Token (Mint)</h3>
+          <form action="/mint" method="POST" data-tx-form class="mt-4 space-y-4">
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label class="block text-xs font-medium text-slate-700">Alamat Penerima</label>
+                <button type="button" onclick="clearInput('mint-to')" class="text-[11px] text-slate-400 hover:text-slate-700">Reset</button>
+              </div>
+              <input id="mint-to" list="wallet-options" type="text" name="to" placeholder="Pilih akun atau ketik 0x..." autocomplete="off" required class="w-full font-mono text-xs border border-slate-300 rounded px-3 py-2 bg-white focus:outline-none focus:border-slate-900" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-700 mb-1">Jumlah Mint</label>
+              <input type="text" name="amount" placeholder="1000" required class="w-full font-mono text-sm border border-slate-300 rounded px-3 py-2 focus:outline-none focus:border-slate-900" />
+            </div>
+            <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-semibold py-2.5 px-4 rounded transition-colors">
+              Mint Koin Baru
+            </button>
+          </form>
+        </div>
+
+        <div class="pt-4 border-t border-slate-200">
+          <p class="text-xs font-semibold text-slate-900 mb-2">Emergency Circuit Breaker</p>
+          <% if (info.paused) { %>
+            <form action="/unpause" method="POST" data-tx-form>
+              <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold py-2.5 px-4 rounded transition-colors">
+                Aktifkan Kembali Sistem (Unpause)
+              </button>
+            </form>
+          <% } else { %>
+            <form action="/pause" method="POST" data-tx-form>
+              <button type="submit" class="w-full bg-red-600 hover:bg-red-700 text-white text-xs font-semibold py-2.5 px-4 rounded transition-colors">
+                Bekukan Semua Transaksi (Pause)
+              </button>
+            </form>
+          <% } %>
+        </div>
+      </div>
+
+      <!-- Compliance & Blacklist Control -->
+      <div class="bg-white p-5 border border-slate-200 rounded-md flex flex-col justify-between space-y-6">
+        <div>
+          <h3 class="text-sm font-semibold text-slate-900 border-b border-slate-100 pb-3">Kontrol Kepatuhan & Blacklist</h3>
+          <form method="POST" data-tx-form class="mt-4 space-y-4">
+            <div>
+              <div class="flex items-center justify-between mb-1">
+                <label class="block text-xs font-medium text-slate-700">Target Address</label>
+                <button type="button" onclick="clearInput('compliance-addr')" class="text-[11px] text-slate-400 hover:text-slate-700">Reset</button>
+              </div>
+              <input id="compliance-addr" list="wallet-options" type="text" name="address" placeholder="Pilih akun atau ketik 0x..." autocomplete="off" required class="w-full font-mono text-xs border border-slate-300 rounded px-3 py-2 bg-white focus:outline-none focus:border-slate-900" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-700 mb-1">Alasan Pembekuan (Opsional untuk Unblacklist)</label>
+              <input type="text" name="reason" placeholder="Contoh: Indikasi AML / Sanction" class="w-full text-xs border border-slate-300 rounded px-3 py-2 focus:outline-none focus:border-slate-900" />
+            </div>
+            <div class="grid grid-cols-2 gap-2">
+              <button type="submit" formaction="/blacklist" class="bg-red-600 hover:bg-red-700 text-white text-xs font-semibold py-2.5 px-3 rounded transition-colors">
+                Blacklist
+              </button>
+              <button type="submit" formaction="/unblacklist" class="bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 text-xs font-semibold py-2.5 px-3 rounded transition-colors">
+                Unblacklist
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Address Lookup -->
+        <div class="pt-4 border-t border-slate-200">
+          <form action="/" method="GET" class="flex gap-2">
+            <input list="wallet-options" type="text" name="address" value="<%= lookup ? lookup.address : '' %>" placeholder="Cek status alamat 0x..." autocomplete="off" class="flex-1 font-mono text-xs border border-slate-300 rounded px-3 py-2 focus:outline-none focus:border-slate-900" />
+            <button type="submit" class="bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold px-3 py-2 rounded border border-slate-300">
+              Cek
+            </button>
+          </form>
+
+          <% if (lookup) { %>
+            <div class="mt-3 p-3 bg-slate-50 border border-slate-200 rounded text-xs space-y-1">
+              <% if (lookup.error) { %>
+                <p class="text-red-600 font-medium"><%= lookup.error %></p>
+              <% } else { %>
+                <p class="font-mono text-slate-600 truncate"><%= lookup.address %></p>
+                <p>Saldo: <span class="font-mono font-semibold"><%= lookup.balance %> <%= info.symbol %></span></p>
+                <p>Status: 
+                  <span class="font-semibold <%= lookup.blacklisted ? 'text-red-600' : 'text-emerald-600' %>">
+                    <%= lookup.blacklisted ? `BLACKLISTED (${lookup.reason})` : 'BERSIH' %>
+                  </span>
+                </p>
+              <% } %>
+            </div>
+          <% } %>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Logs & History Two-Column Split -->
+    <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+      <!-- Audit Trail -->
+      <div class="bg-white border border-slate-200 rounded-md overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-slate-200 bg-slate-50">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-700">Audit Trail Kepatuhan</h3>
+        </div>
+        <div class="divide-y divide-slate-200 max-h-80 overflow-y-auto text-xs">
+          <% if (audit.length === 0) { %>
+            <p class="p-5 text-slate-500">Belum ada log kepatuhan tercatat.</p>
+          <% } %>
+          <% audit.forEach(item => { %>
+            <div class="px-5 py-3 flex items-start justify-between gap-4">
+              <div>
+                <span class="inline-block font-mono font-semibold px-1.5 py-0.5 rounded text-[10px] mr-2
+                  <%= item.type === 'BLACKLIST' || item.type === 'PAUSE' ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800' %>">
+                  <%= item.type %>
+                </span>
+                <span class="font-mono text-slate-700 break-all"><%= item.detail %></span>
+              </div>
+              <span class="font-mono text-slate-400 shrink-0">#<%= item.block %></span>
+            </div>
+          <% }) %>
+        </div>
+      </div>
+
+      <!-- Transfer History -->
+      <div class="bg-white border border-slate-200 rounded-md overflow-hidden">
+        <div class="px-5 py-3.5 border-b border-slate-200 bg-slate-50">
+          <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-700">Riwayat Transaksi On-Chain</h3>
+        </div>
+        <div class="divide-y divide-slate-200 max-h-80 overflow-y-auto text-xs">
+          <% if (history.length === 0) { %>
+            <p class="p-5 text-slate-500">Belum ada riwayat transfer.</p>
+          <% } %>
+          <% history.forEach(tx => { %>
+            <div class="px-5 py-3 space-y-1">
+              <div class="flex items-center justify-between">
+                <span class="font-mono font-semibold text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-800">
+                  <%= tx.kind %>
+                </span>
+                <span class="font-mono font-semibold text-slate-900"><%= tx.value %> <%= info.symbol %></span>
+              </div>
+              <div class="font-mono text-[11px] text-slate-500 flex items-center justify-between">
+                <span class="truncate max-w-[42%]" title="<%= tx.from %>">From: <%= tx.from %></span>
+                <span>&rarr;</span>
+                <span class="truncate max-w-[42%]" title="<%= tx.to %>">To: <%= tx.to %></span>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <script src="/js/dashboard.js"></script>
+</body>
+</html>
